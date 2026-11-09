@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Отломи!</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#f6e7d3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+@font-face{font-family:Nunito;font-weight:200 1000;font-display:swap;src:url('assets/nunito-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:Nunito;font-weight:200 1000;font-display:swap;src:url('assets/nunito-cyr.woff2') format('woff2');
+  unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+/* Палитра — одно место; canvas читает цвета через getComputedStyle (PROTO-BASE §9). */
+:root{
+  --bg:#2e1c2a; --frame:#fbf3ea; --ink:#3b2418; --muted:#8a6a55;
+  --accent:#ff7a59; --off:#efd9c1; --danger:#e5484d; --good:#3fae6a;
+  --wall:#fbefe0; --floor:#f6e2cd; --confetti1:#ff9fbf; --confetti2:#8fd9b6; --confetti3:#ffd36e; --confetti4:#9ec9ff;
+  --wood:#d79a5f; --wood-dark:#a8693a; --wood-line:#c48450;
+  --plate:#ffffff; --plate-rim:#d9e3ef; --plate-warn:#ffd5d5;
+  --skin1:#ffd9bd; --skin2:#f3c39a; --skin3:#c98e63; --hair1:#5a3a24; --hair2:#2e2622; --hair3:#e0a84f;
+  --shirt1:#9ec9ff; --shirt2:#ffd36e; --shirt3:#c7a8ff; --shirt4:#9fe3c2;
+  --f-m:#7a4a2c; --f-w:#f3e4c4; --f-p:#f48fb5; --f-g:#83d3ad;
+  --frame-w:430px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:16px/1.3 Nunito, system-ui, -apple-system, "Segoe UI", sans-serif;
+  overflow:hidden;overscroll-behavior:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+#frame{position:relative;width:min(100vw,var(--frame-w));height:100dvh;height:100svh;margin:0 auto;background:var(--frame);
+  display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+header{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:8px 12px 6px;gap:8px;background:#fbf3ea}
+.pill{display:inline-flex;align-items:center;gap:6px;background:#fff;color:#5a2e1a;border-radius:999px;padding:7px 20px;
+  font-weight:900;font-size:18px;box-shadow:0 3px 0 #ecd6c4, 0 6px 14px rgba(120,60,40,.12)}
+.hbtns{display:flex;gap:8px}
+button.ico{width:42px;height:42px;padding:0;border-radius:50%;display:grid;place-items:center;color:#7a4a35;background:#fff;
+  box-shadow:0 3px 0 #ecd6c4, 0 6px 14px rgba(120,60,40,.12)}
+button.ico svg{display:block}
+#hint{position:absolute;left:50%;top:10px;transform:translateX(-50%);width:max-content;max-width:92%;padding:7px 14px;border-radius:14px;background:rgba(255,255,255,.88);
+  color:#6b3e2a;font-size:14px;font-weight:800;text-align:center;pointer-events:none;box-shadow:0 4px 14px rgba(120,60,40,.12);line-height:1.25}
+#hint:empty{display:none}
+#game{flex:1;position:relative;touch-action:none}
+#game canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+button{font:inherit;color:var(--ink);background:linear-gradient(#fff,#fbe7cf);border:0;border-radius:14px;padding:10px 18px;cursor:pointer;font-weight:800;
+  box-shadow:0 4px 0 #dcb994, 0 6px 10px rgba(90,40,10,.15);transform:translateY(0);transition:transform .06s, box-shadow .06s}
+button:active{transform:translateY(3px);box-shadow:0 1px 0 #dcb994}
+button.primary{background:linear-gradient(#ff8db4,#f0588f);color:#fff;font-weight:900;text-shadow:0 1px 0 rgba(120,0,40,.35);box-shadow:0 4px 0 #b8325f, 0 6px 12px rgba(184,50,95,.3)}
+button.primary:active{box-shadow:0 1px 0 #b8325f}
+#overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(59,26,10,.45);padding:20px}
+#overlay.show{display:flex}
+.card{position:relative;background:linear-gradient(#fffaf2,#fdebd6);border-radius:26px;padding:24px 20px 20px;max-width:350px;width:100%;text-align:center;
+  border:4px solid #fff;box-shadow:0 0 0 3px #e8c39b, 0 18px 40px rgba(60,20,0,.35);animation:pop .22s cubic-bezier(.3,1.5,.6,1)} /* стартует с видимого состояния, не с opacity:0 (§9) */
+@keyframes pop{from{transform:scale(.92)}to{transform:scale(1)}}
+.card h2{margin:0 0 8px;font-size:30px;font-weight:900;color:#6b3418;letter-spacing:.5px;text-shadow:0 2px 0 #fff, 0 3px 0 #e8c39b}
+.card p{color:#8a5a3c;margin:0 0 16px;font-weight:600}
+.card .deco{position:absolute;width:54px;top:-22px;filter:drop-shadow(0 4px 4px rgba(60,20,0,.3))}
+.card .deco.l{left:-14px;transform:rotate(-14deg)} .card .deco.r{right:-14px;transform:rotate(12deg)}
+.logo{font-size:46px;font-weight:900;color:#7a3e1c;margin:4px 0 6px;letter-spacing:1px;line-height:1;
+  text-shadow:0 3px 0 #fff, 0 6px 0 #e8a7c0, 0 10px 14px rgba(90,30,10,.25)}
+.stars{display:flex;justify-content:center;gap:8px;margin:2px 0 10px}
+.star{width:48px;height:48px;background:#e8d2bb;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+.star.on{background:linear-gradient(#ffe27a,#f5b301);animation:star .4s cubic-bezier(.3,1.6,.5,1) both}
+.star.on:nth-child(2){animation-delay:.15s} .star.on:nth-child(3){animation-delay:.3s}
+.star:nth-child(2){transform:translateY(-8px);width:56px;height:56px}
+@keyframes star{from{transform:scale(1.5) rotate(-20deg)}to{transform:scale(1)}}
+.star:nth-child(2).on{animation-name:star2} @keyframes star2{from{transform:translateY(-8px) scale(1.5) rotate(20deg)}to{transform:translateY(-8px) scale(1)}}
+.lv{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:16px 0 4px}
+.lv button{position:relative;padding:0;height:52px;border-radius:10px;background:#7a4a2c url(assets/dolka-m.webp) center/100% 100% no-repeat;color:#fff;
+  font-size:19px;font-weight:900;text-shadow:0 2px 0 rgba(40,10,0,.6);box-shadow:0 3px 0 #4a2410}
+.lv button.done{background-image:url(assets/dolka-p.webp)}
+.lv button small{position:absolute;left:0;right:0;bottom:-3px;font-size:10px;color:#ffd84a;letter-spacing:0;text-shadow:0 1px 0 #6b3418}
+.lv button.cur{outline:3px solid #ff5f95;outline-offset:2px}
+.help{text-align:left;font-size:15px;line-height:1.45}
+.help b{color:#6b3418}
+#toast{position:absolute;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:var(--frame);padding:8px 14px;border-radius:10px;
+  pointer-events:none;opacity:.96;transition:opacity .25s;max-width:90%;text-align:center}
+#toast.hide{opacity:0}
+@media (prefers-reduced-motion: reduce){ .card,.star.on{animation:none} #toast{transition:none} }
+</style>
+</head>
+<body>
+<div id="frame">
+  <header>
+    <button class="ico" id="btn-menu" aria-label="меню"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg></button>
+    <span class="pill" id="hud-level">Уровень 1</span>
+    <span class="hbtns"><button class="ico" id="btn-reset" aria-label="заново"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M19 12a7 7 0 1 1-2.05-4.95" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><path d="M19.5 3.5v5h-5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="ico" id="btn-mute" aria-label="звук"></button></span>
+  </header>
+  <div id="game"><canvas id="cv"></canvas><div id="hint"></div></div>
+  <div id="overlay"><div class="card" id="card"></div></div>
+  <div id="toast" class="hide"></div>
+</div>
+<script>
+'use strict';
+/* ЯДРО */
+// ---------------------------------------------------------------------------
+// «Отломи!» — правила. Плитка лежит на столе вертикально, ряды по 3–4 дольки.
+// Удержание двигает плитку за край стола; отпускание ломает её по ближайшей
+// бороздке — n нижних рядов уходят первому ребёнку в очереди.
+// Ребёнок съедает дольки своего вкуса — из куска и с блюдца; чужие дольки куска
+// прыгают на блюдце. Каждому ребёнку — ровно один кусок; последнему — весь остаток.
+// Проигрыш: блюдце переполнено · ребёнку не досталось ни дольки своего вкуса ·
+// плитка кончилась раньше очереди. Звёзды — по крошкам на блюдце в конце.
+// Ход ядра = число рядов n, которое отламывается (1…остаток).
+// ---------------------------------------------------------------------------
+const CFG = {
+  SAUCER_CAP: 5,        // мест на блюдце (уровень может переопределить полем cap); больше — крошки на полу
+  STAR2_CRUMBS: 2,      // крошек на блюдце к концу уровня, при которых ещё 2★ (0 — 3★, больше — 1★)
+  SLIDE_RPS: 2.2,       // скорость сползания плитки при удержании, рядов в секунду
+  LAST_RPS: 5,          // последнему ребёнку плитка уезжает целиком и быстрее — ему всё равно весь остаток
+  MIN_BREAK: 0.5,       // свес меньше полуряда при отпускании — не ломается, плитка отъезжает обратно
+  SNAP_MS: 200,         // остаток плитки доезжает обратно к краю (с лёгким пружинным перелётом)
+  HITSTOP_MS: 70,       // стоп-кадр в момент хруста: кусок замирает, трещина вспыхивает
+  FALL_MS: 330,         // кусок летит в руки ребёнку
+  BITE_MS: 170,         // долька летит в рот
+  EAT_STEP_MS: 75,      // шаг между съеденными дольками
+  HOP_MS: 320,          // долька летит на блюдце / с блюдца
+  HAPPY_MS: 420,        // ребёнок радуется/грустит перед уходом
+  LEAVE_MS: 380,        // ребёнок уходит, очередь сдвигается
+  END_DELAY_MS: 380,    // пауза перед экраном проигрыша
+  WIN_DELAY_MS: 700,    // конфетти перед карточкой победы (хлопушки стартуют на радости последнего)
+  TOAST_MS: 1700,       // сколько висит тост
+  QUEUE_SHOWN: 3,       // сколько детей очереди видно после первого (остальные — «+N»)
+};
+
+// Детерминированный генератор случайных чисел (PROTO-BASE §5). Math.random() не используется.
+function mulberry32(seed){
+  let a = seed >>> 0;
+  return function(){
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Вкусы. Цвета — в CSS (--f-<ключ>); здесь только имена. Знак на дольке и бантике дублирует цвет (§9).
+const FLAVORS = {
+  m: { name: 'молочный' },     // гладкая
+  w: { name: 'белый' },        // гладкая светлая
+  p: { name: 'клубничный' },   // семечки
+  g: { name: 'мятный' },       // листик
+};
+// Лицо ребёнка i на уровне li — (i + li) % 4: 0 и 2 — девочки, 1 и 3 — мальчики (лист kids). Имя — по полу лица.
+const KID_NAMES = { girl: ['Маша', 'Аня', 'Соня', 'Катя', 'Даша', 'Лиза'], boy: ['Петя', 'Ваня', 'Лёва', 'Миша', 'Тёма', 'Гоша'] };
+function kidFace(i, li){ return (i + li) % 4; }
+
+// Уровни — декларативная таблица. bar — картинка плитки сверху вниз, как на экране:
+// НИЖНИЙ ряд свешивается первым. kids — очередь, первый символ — первый ребёнок.
+const LEVELS = [
+  { n: 1, kids: 'pm', hint: 'Держи палец — плитка ползёт. Отпусти — хрусть!',
+    bar: ['mmm',
+          'mmm',
+          'ppp',
+          'ppp'] },
+  { n: 2, kids: 'pwm', hint: 'Каждому — один кусок. Ломай по границе вкусов.',
+    bar: ['mmm',
+          'mmm',
+          'www',
+          'www',
+          'www',
+          'ppp'] },
+  { n: 3, kids: 'mp', hint: 'Чужое — на блюдце. Его доест тот, чей это вкус.',
+    bar: ['ppp',
+          'ppp',
+          'mpp',
+          'mmp',
+          'mmm',
+          'mmm'] },
+  { n: 4, kids: 'mpm', hint: 'Больше 5 долек на блюдце — крошки на полу!',
+    bar: ['mmmm',
+          'mmmm',
+          'mppm',
+          'pppp',
+          'pppp',
+          'mppm',
+          'mmmm'] },
+  { n: 5, kids: 'wmpg', hint: 'Мятный — с листиком, клубничный — с сердечками.',
+    bar: ['ggg',
+          'gpg',
+          'ppp',
+          'mpm',
+          'mmm',
+          'wmw',
+          'www'] },
+  { n: 6, kids: 'mwpw', hint: 'Три звезды — если к концу блюдце пустое.',
+    bar: ['wwww',
+          'wppw',
+          'pppp',
+          'pppp',
+          'wppw',
+          'wwww',
+          'wwww',
+          'mmmm'] },
+  { n: 7, kids: 'mwwgg', hint: 'Смотри на всю очередь, а не только на первого.',
+    bar: ['gggg',
+          'gggg',
+          'wwgg',
+          'wwww',
+          'wwww',
+          'mmww',
+          'mmmm',
+          'mmmm'] },
+  { n: 8, kids: 'pmgmgm', hint: '',
+    bar: ['mmmm',
+          'mgmm',
+          'mmgm',
+          'gggg',
+          'gmgg',
+          'mmmm',
+          'mmgm',
+          'mmmm',
+          'pppp',
+          'ppmp'] },
+  { n: 9, kids: 'gpmpmw', hint: '',
+    bar: ['wwww',
+          'wwww',
+          'mmpp',
+          'mmpp',
+          'mmpp',
+          'mmpp',
+          'gggg'] },
+  { n: 10, kids: 'gmmwpwp', hint: '',
+    bar: ['pppp',
+          'ppww',
+          'pwww',
+          'wwww',
+          'wwmm',
+          'wmmm',
+          'mmmm',
+          'mmgg',
+          'mggg',
+          'gggg'] },
+];
+
+// Ряды ядра идут снизу вверх: rows[0] свешивается первым.
+function createState(levelIndex){
+  const L = LEVELS[levelIndex];
+  const rows = L.bar.slice().reverse();
+  const names = L.kids.split('').map((f, i) => { const pool = KID_NAMES[kidFace(i, levelIndex) % 2 ? 'boy' : 'girl']; return pool[(levelIndex * 2 + i * 5 + Math.floor(i / 2)) % pool.length]; });
+  return {
+    li: levelIndex, w: rows[0].length, rows, kids: L.kids.split(''), names,
+    k: 0,               // индекс ребёнка, который получает следующий кусок
+    saucer: [],         // вкусы долек на блюдце, по порядку мест
+    cap: L.cap || CFG.SAUCER_CAP,
+    moves: 0, over: null, // null | 'win' | 'overflow' | 'sad' | 'short'
+    eaten: [],          // сколько долек съел каждый ребёнок
+  };
+}
+function cloneState(s){ return { ...s, rows: s.rows.slice(), kids: s.kids, names: s.names, saucer: s.saucer.slice(), eaten: s.eaten.slice() }; }
+function kidsLeft(s){ return s.kids.length - s.k; }
+function legalMoves(s){
+  if (s.over) return [];
+  const rem = s.rows.length;
+  if (kidsLeft(s) === 1) return [rem];                 // последнему — весь остаток
+  const out = []; for (let n = 1; n <= rem; n++) out.push(n); return out;
+}
+// Что произойдёт при отломе n рядов — без изменения состояния. Тот же расчёт рисует превью и анимацию.
+function resolveBreak(s, n){
+  const kid = s.kids[s.k];
+  const stay = [], fromSaucer = [];
+  s.saucer.forEach((f, i) => (f === kid ? fromSaucer : stay).push(i));
+  const cells = [], foreign = [];
+  let ownPiece = 0;
+  for (let r = 0; r < n; r++){
+    const row = s.rows[r];
+    for (let c = 0; c < row.length; c++){
+      const f = row[c]; if (f === '.') continue;
+      if (f === kid){ ownPiece++; cells.push({ r, c, f, to: 'kid' }); }
+      else { cells.push({ r, c, f, to: 'saucer', slot: stay.length + foreign.length }); foreign.push(f); }
+    }
+  }
+  const saucerAfter = stay.map(i => s.saucer[i]).concat(foreign);
+  const ate = ownPiece + fromSaucer.length;
+  const restRows = s.rows.length - n;
+  let result = null;
+  if (saucerAfter.length > s.cap) result = 'overflow';
+  else if (ate === 0) result = 'sad';
+  else if (s.k + 1 === s.kids.length) result = restRows === 0 ? 'win' : 'short';
+  else if (restRows === 0) result = 'short';
+  return { n, kid, k: s.k, cells, ownPiece, fromSaucer, stay, foreign, saucerAfter, ate, result };
+}
+function applyMove(s, n){
+  const r = resolveBreak(s, n), t = cloneState(s);
+  t.rows = s.rows.slice(n); t.saucer = r.saucerAfter.slice();
+  t.eaten[s.k] = r.ate; t.k = s.k + 1; t.moves = s.moves + 1; t.over = r.result;
+  return t;
+}
+function isWin(s){ return s.over === 'win'; }
+function isLose(s){ return !!s.over && s.over !== 'win'; }
+function crumbs(s){ return s.saucer.length; }
+function stars(s){ return !isWin(s) ? 0 : crumbs(s) === 0 ? 3 : crumbs(s) <= CFG.STAR2_CRUMBS ? 2 : 1; }
+
+// Полный перебор: все последовательности отломов. Возвращает лучший путь и статистику дерева.
+function solve(s){
+  let total = 0, wins = 0, wins3 = 0, best = null, bestStars = 0;
+  const path = [];
+  (function dfs(st){
+    if (st.over){
+      total++;
+      if (isWin(st)){ wins++; const z = stars(st); if (z === 3) wins3++; if (z > bestStars){ bestStars = z; best = path.slice(); } }
+      return;
+    }
+    for (const n of legalMoves(st)){ path.push(n); dfs(applyMove(st, n)); path.pop(); }
+  })(s);
+  return { path: best, stars: bestStars, total, wins, wins3 };
+}
+
+// Боты для симулятора (PROTO-BASE §6).
+function playWith(levelIndex, pick){
+  let s = createState(levelIndex);
+  while (!s.over) s = applyMove(s, pick(s));
+  return { win: isWin(s), stars: stars(s), moves: s.moves, over: s.over, crumbs: crumbs(s) };
+}
+// Случайный: отпускает в случайный момент — любой ряд с равной вероятностью.
+function randomRun(levelIndex, seed){
+  const rnd = mulberry32(seed);
+  return playWith(levelIndex, s => { const m = legalMoves(s); return m[Math.floor(rnd() * m.length)]; });
+}
+// Новичок «по границе вкусов»: отпускает, как только свесились все ряды, где вкус ребёнка — большинство.
+function noviceMove(s){
+  const m = legalMoves(s); if (m.length === 1) return m[0];
+  const kid = s.kids[s.k]; let n = 0;
+  while (n < s.rows.length){ const row = s.rows[n]; const own = [...row].filter(f => f === kid).length; if (own * 2 < row.length) break; n++; }
+  n = Math.max(1, n);
+  return Math.min(n, s.rows.length - (kidsLeft(s) - 1));
+}
+function noviceRun(levelIndex){ return playWith(levelIndex, noviceMove); }
+// «Человек»: целится как новичок, но с вероятностью err промахивается на одну бороздку (раньше или позже).
+function humanRun(levelIndex, seed, err){
+  const rnd = mulberry32(seed), e = err === undefined ? 0.25 : err;
+  return playWith(levelIndex, s => {
+    const m = legalMoves(s), n = noviceMove(s); if (m.length === 1 || rnd() >= e) return n;
+    const d = rnd() < 0.5 ? -1 : 1;
+    return Math.max(1, Math.min(s.rows.length, n + d));
+  });
+}
+// Жадный: смотрит только на этот отлом — больше своего, меньше чужого, без переполнения, оставляет ряды остальным.
+function greedyMove(s){
+  const m = legalMoves(s); if (m.length === 1) return m[0];
+  let best = m[0], bestScore = -Infinity;
+  for (const n of m){
+    if (s.rows.length - n < kidsLeft(s) - 1) continue;
+    const r = resolveBreak(s, n);
+    if (r.result === 'overflow' || r.result === 'sad') continue;
+    const score = r.ate - 1.01 * r.foreign.length;
+    if (score > bestScore){ bestScore = score; best = n; }
+  }
+  return best;
+}
+function greedyRun(levelIndex){ return playWith(levelIndex, greedyMove); }
+/* КОНЕЦ ЯДРА */
+
+// ---------------------------------------------------------------------------
+// Оболочка: экраны, ввод удержанием, рендер, звук, сейв, дебаг-хук. Время абсолютное (§4).
+// ---------------------------------------------------------------------------
+const NAME = 'otlomi';
+const T0 = performance.now();
+function log(kind, name, info){            // журнал [game] — одна строка на событие (§11)
+  console.log('[game] ' + JSON.stringify({ t: +((performance.now() - T0) / 1000).toFixed(3), kind, name, info: info === undefined ? '' : String(info) }));
+}
+
+const SAVE_KEY = NAME + '.v1';
+function loadSave(){ try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch (e) { return {}; } }
+function save(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(G.save)); } catch (e) {} }
+
+const G = {
+  s: null,                       // состояние ядра (уже с применённым последним отломом)
+  screen: 'menu',                // menu | game | win | lose | help
+  save: Object.assign({ level: 0, muted: false, best: {} }, loadSave()),
+  hold: null,                    // { t0, id, rps, lastGroove } — палец держит, плитка ползёт
+  snap: null,                    // { from, t0 } — остаток плитки отъезжает к краю (в рядах свеса)
+  anim: null,                    // текущий отлом: см. doBreak()
+  ending: 0,                     // когда показать win/lose, 0 = не ждём
+  lockUntil: 0,                  // до этого момента новое удержание не начинается
+  timeScale: 1,
+  paused: false,
+  tries: {},                     // попыток на уровень за сессию (для журнала)
+};
+
+// --- звук: WebAudio-синтез без файлов, ленивый старт по первому жесту (§8) ---
+const Audio = {
+  ac: null, noise: null,
+  init(){
+    if (this.ac) { if (this.ac.state === 'suspended') try { this.ac.resume(); } catch (e) {} return; }
+    try { this.ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { this.ac = null; return; }
+    const len = Math.floor(this.ac.sampleRate * 0.5), buf = this.ac.createBuffer(1, len, this.ac.sampleRate), d = buf.getChannelData(0);
+    const rnd = mulberry32(4242); for (let i = 0; i < len; i++) d[i] = rnd() * 2 - 1;
+    this.noise = buf;
+  },
+  ok(){ return this.ac && !G.save.muted; },
+  tone(freq, ms, type, vol, delay, slideTo){
+    if (!this.ok()) return;
+    const t = this.ac.currentTime + (delay || 0) / 1000, o = this.ac.createOscillator(), g = this.ac.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(freq, t);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + ms / 1000);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.2, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+    o.connect(g).connect(this.ac.destination); o.start(t); o.stop(t + ms / 1000 + 0.03);
+  },
+  burst(ms, hp, vol, delay){                     // шумовой щелчок: хруст, крошки
+    if (!this.ok() || !this.noise) return;
+    const t = this.ac.currentTime + (delay || 0) / 1000, src = this.ac.createBufferSource(), f = this.ac.createBiquadFilter(), g = this.ac.createGain();
+    src.buffer = this.noise; f.type = 'highpass'; f.frequency.value = hp;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+    src.connect(f).connect(g).connect(this.ac.destination); src.start(t); src.stop(t + ms / 1000 + 0.02);
+  },
+  bp(ms, freq, q, vol, delay){                   // полосовой шум: хрум, шорох
+    if (!this.ok() || !this.noise) return;
+    const t = this.ac.currentTime + (delay || 0) / 1000, src = this.ac.createBufferSource(), f = this.ac.createBiquadFilter(), g = this.ac.createGain();
+    src.buffer = this.noise; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+    src.connect(f).connect(g).connect(this.ac.destination); src.start(t, (delay || 0) % 0.3); src.stop(t + ms / 1000 + 0.02);
+  },
+  groove(i){ this.bp(22, 2600, 3, 0.35); this.tone(1100 + 50 * Math.min(i, 10), 22, 'square', 0.035); },   // деревянный щелчок бороздки
+  crack(n){                                      // хруст: щелчок + шорох крошек + глухой «тук»; крупнее кусок — гуще
+    this.burst(55, 3200, 0.7); this.bp(90, 1800, 1.2, 0.5, 8); this.burst(35, 6000, 0.3, 30);
+    this.tone(160, 110, 'triangle', 0.4, 0, 60);
+    for (let i = 0; i < 3 + Math.min(4, n || 1); i++) this.bp(28, 2200 + 400 * (i % 3), 2, 0.18, 40 + i * 28);
+    log('sound', 'crack');
+  },
+  thud(){ this.tone(120, 90, 'sine', 0.25, 0, 70); this.bp(50, 600, 1, 0.2); },
+  crunch(i, delay){ this.bp(60, 1300 + 150 * (i % 3), 1.5, 0.32, delay); this.bp(40, 3000, 2, 0.12, (delay || 0) + 25); },
+  clink(i, delay){ this.tone(2300 + 120 * (i % 4), 140, 'sine', 0.09, delay); this.tone(3480 + 90 * (i % 3), 90, 'sine', 0.05, delay); },
+  happy(delay){ this.tone(330, 260, 'triangle', 0.14, delay, 440); [659, 784, 988].forEach((f, i) => this.tone(f, 120, 'sine', 0.1, (delay || 0) + 120 + i * 70)); log('sound', 'happy'); },
+  sad(){ this.tone(392, 240, 'triangle', 0.15, 0, 300); this.tone(300, 360, 'triangle', 0.13, 220, 210); log('sound', 'sad'); },
+  spill(){ for (let i = 0; i < 6; i++) this.bp(60, 1800 + 300 * (i % 3), 1.5, 0.3, i * 55); this.tone(220, 360, 'sawtooth', 0.06, 0, 90); log('sound', 'spill'); },
+  win(){ [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone(f, 200, 'triangle', 0.15, i * 90)); this.tone(1568, 500, 'sine', 0.08, 460); log('sound', 'win'); },
+};
+function buzz(ms){ try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
+
+// --- экраны: DOM-оверлеи, любой открывается кодом или хешем (§6, §11) ---
+const $ = (id) => document.getElementById(id);
+const LOSE_TEXT = {
+  overflow: () => ['Крошки на полу!', 'Блюдце переполнилось — больше ' + G.s.cap + ' чужих долек.'],
+  sad: (nm) => ['Обида!', nm + ': в куске ни дольки своего вкуса.'],
+  short: (nm) => ['Не хватило!', 'Шоколадка кончилась, а ' + nm + ' — без куска.'],
+};
+function starsHtml(n){ return '<div class="stars">' + [0, 1, 2].map(i => '<i class="star' + (i < n ? ' on' : '') + '"></i>').join('') + '</div>'; }
+const DECO = '<img class="deco l" src="assets/dolka-p.webp" alt=""><img class="deco r" src="assets/dolka-g.webp" alt="">';
+function levelGrid(){
+  return '<div class="lv">' + LEVELS.map((L, i) => `<button data-act="lv" data-i="${i}" class="${i === G.save.level ? 'cur' : ''} ${G.save.best[i] ? 'done' : ''}">${i + 1}<small>${'★'.repeat(G.save.best[i] || 0)}</small></button>`).join('') + '</div>';
+}
+function goto(screen, payload){
+  if (screen === 'game' && !G.s){ startLevel(G.save.level); return; }
+  G.screen = screen; log('screen', screen);
+  const ov = $('overlay'), card = $('card');
+  if (screen === 'game'){ ov.classList.remove('show'); return; }
+  cancelHold();
+  ov.classList.add('show');
+  if (screen === 'menu') card.innerHTML = DECO + `<div class="logo">Отломи!</div><p>Держи палец — шоколадка ползёт за край. Отпусти — хрусть! Каждому ребёнку — его вкус.</p>
+      <button class="primary" data-act="play">Играть · ${G.save.level + 1}</button> <button data-act="help">Как играть</button>${levelGrid()}`;
+  if (screen === 'help') card.innerHTML = DECO + `<h2>Как играть</h2><p class="help">
+      • Держи палец — плитка ползёт за край стола. Отпусти — кусок отломится по ближайшей бороздке.<br>
+      • Кусок достаётся первому в очереди. Свой вкус он съест, чужие дольки прыгнут на блюдце.<br>
+      • С блюдца дольки доест тот, чей это вкус, когда получит свой кусок.<br>
+      • Каждому — один кусок, последнему — всё, что осталось.<br>
+      • Проигрыш: блюдце переполнилось, ребёнку не досталось его вкуса или не хватило плитки.<br>
+      • ★★★ — блюдце к концу пустое.</p><button class="primary" data-act="menu">Понятно</button>`;
+  if (screen === 'win'){
+    const z = payload || 0;
+    card.innerHTML = DECO + `<h2>Все сыты!</h2>${starsHtml(z)}<p>${z === 3 ? 'Блюдце пустое — идеально.' : 'Крошек на блюдце: ' + (G.s ? crumbs(G.s) : 0) + '. Пустое блюдце — ★★★.'}</p>
+      <button class="primary" data-act="next">${G.s && G.s.li + 1 < LEVELS.length ? 'Дальше' : 'В меню'}</button> <button data-act="retry">Ещё раз</button>`;
+  }
+  if (screen === 'lose'){
+    const why = (G.s && G.s.over) || 'overflow', nm = payload || 'Малыш';
+    const [h, p] = (LOSE_TEXT[why] || LOSE_TEXT.overflow)(nm);
+    card.innerHTML = `<h2>${h}</h2><p>${p}</p><button class="primary" data-act="retry">Ещё раз</button> <button data-act="menu">Меню</button>`;
+  }
+}
+$('card').addEventListener('click', (e) => {
+  const el = e.target && e.target.closest ? e.target.closest('button') : null; const act = el && el.dataset.act; if (!act) return;
+  Audio.init(); log('input', 'button', act);
+  if (act === 'play') startLevel(G.save.level);
+  else if (act === 'retry') startLevel(G.s ? G.s.li : G.save.level);
+  else if (act === 'lv') startLevel(+el.dataset.i);
+  else if (act === 'next'){ if (G.s && G.s.li + 1 < LEVELS.length) startLevel(G.s.li + 1); else goto('menu'); }
+  else if (act === 'help') goto('help');
+  else goto('menu');
+});
+window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (h && h !== G.screen) goto(h, h === 'win' ? 3 : undefined); });
+
+let toastUntil = 0;
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.remove('hide'); toastUntil = performance.now() + CFG.TOAST_MS; }
+
+function startLevel(li){
+  li = Math.max(0, Math.min(LEVELS.length - 1, li));
+  G.s = createState(li); G.anim = null; G.hold = null; G.snap = null; G.ending = 0; G.lockUntil = 0;
+  G.tries[li] = (G.tries[li] || 0) + 1;
+  layout();
+  $('hint').textContent = LEVELS[li].hint || '';
+  log('event', 'level.start', 'level=' + (li + 1) + ' rows=' + G.s.rows.length + ' kids=' + G.s.kids.join('') + ' try=' + G.tries[li]);
+  goto('game'); hud(); render();
+}
+const ICON_SOUND = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+const ICON_MUTED = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+function hud(){
+  $('hud-level').textContent = 'Уровень ' + (G.s ? G.s.li + 1 : 1);
+  $('btn-mute').innerHTML = G.save.muted ? ICON_MUTED : ICON_SOUND;
+}
+
+// --- раскладка: логика экрана в виртуальных юнитах, ширина 400 (§2) ---
+const cv = $('cv'), ctx = cv.getContext('2d');
+const VW = 400;
+let scale = 1, W = VW, H = 640, DPR = 1;
+const LAY = { ch: 40, cw: 46, x0: 0, barCX: 160, edgeY: 300, kidX: 160, kidBase: 640, kidH: 160, plateX: 340, plateY: 250, plateR: 46 };
+const KID_ZONE = 182;            // высота зоны детей под столом, вирт. юниты (дети выглядывают снизу, плечи срезаны краем)
+const HANG_ROWS = 2.6;           // сколько рядов свеса помещается между краем стола и головами детей
+// Привязка спрайта ребёнка (доли от его рамки): рот, руки, бантик. Числа сняты с листа kids GPT.
+const KID_ART = { aspect: 0.86, mouthY: 0.60, handsY: 0.86, bowX: 0.70, bowY: 0.10, bowW: 0.40 };
+// Раскладка: блюдце стоит на столе справа у края, плитка — в оставшейся полосе слева; первый ребёнок — под плиткой,
+// очередь тянется вправо под блюдцем.
+function layout(){
+  const rows0 = G.s ? LEVELS[G.s.li].bar.length : 8, w = G.s ? G.s.w : 4;
+  LAY.plateR = 50;
+  const right = W - 12 - 2 * LAY.plateR - 10;                       // правая граница полосы плитки
+  const top = G.s && LEVELS[G.s.li].hint ? 54 : 16;                 // под плашку подсказки
+  LAY.ch = Math.max(22, Math.min(54, (H - KID_ZONE - top - 6) / (rows0 + HANG_ROWS + 0.75)));
+  LAY.cw = Math.min(LAY.ch * 1.2, (right - 16) / w);
+  LAY.barCX = Math.max(16 + LAY.cw * w / 2, Math.min(W / 2, (16 + right) / 2 + 6));
+  LAY.x0 = LAY.barCX - LAY.cw * w / 2;
+  LAY.edgeY = H - KID_ZONE - HANG_ROWS * LAY.ch;
+  LAY.plateX = W - 12 - LAY.plateR; LAY.plateY = LAY.edgeY - LAY.plateR - 18;
+  LAY.kidH = Math.min(176, KID_ZONE * 0.95); LAY.kidBase = H + 6; LAY.kidX = LAY.barCX;
+}
+function queueSlot(i){            // позиция i-го ребёнка в очереди (0 — получает кусок); base — низ спрайта
+  if (i <= 0) return { x: LAY.kidX + i * 300, base: LAY.kidBase, h: LAY.kidH };
+  const gap = Math.min(64, (W - 26 - (LAY.kidX + LAY.kidH * 0.42)) / Math.max(1, CFG.QUEUE_SHOWN) );
+  return { x: LAY.kidX + LAY.kidH * 0.42 + 8 + (i - 0.5) * gap, base: LAY.kidBase + 2, h: LAY.kidH * 0.62 };
+}
+function kidMouth(){ return { x: LAY.kidX, y: LAY.kidBase - LAY.kidH * (1 - KID_ART.mouthY) }; }
+// Место дольки на блюдце: кольцо вокруг центра (5 мест — пятиугольник).
+function saucerSlot(i, cap){
+  const n = Math.max(cap, 1), a = -Math.PI / 2 + i * 2 * Math.PI / n, r = LAY.plateR * (n <= 1 ? 0 : 0.47);
+  return { x: LAY.plateX + Math.cos(a) * r, y: LAY.plateY + Math.sin(a) * r };
+}
+function floorSlot(j){ return { x: LAY.plateX - 30 + (j % 4) * 20, y: LAY.edgeY + 34 + Math.floor(j / 4) * 10 + (j % 2) * 5 }; }   // упало со стола
+const CRUMB = { w: 27, h: 23 };
+
+// --- удержание и отлом ---
+function overhang(now){
+  if (!G.hold){
+    if (!G.snap) return 0;
+    const k = Math.min(1, (now - G.snap.t0) / CFG.SNAP_MS);           // отъезд с лёгким перелётом (пружина)
+    return G.snap.from * (1 - k) - Math.sin(k * Math.PI) * 0.08 * Math.min(1, G.snap.from + 0.5);
+  }
+  return Math.min(G.s.rows.length, (now - G.hold.t0) / 1000 * G.hold.rps * G.timeScale);
+}
+// Храповик: плитка задерживается на бороздках и проскакивает середину ряда. Решение — по истинному свесу (round),
+// картинка совпадает с ним в точках 0, ½, 1 ряда.
+function ratchet(oh){ const i = Math.floor(oh), f = oh - i; return i + f - 0.1 * Math.sin(2 * Math.PI * f); }
+function canHold(){ return G.s && G.screen === 'game' && !G.s.over && !G.hold && performance.now() >= G.lockUntil; }
+function press(id, at){
+  if (!canHold()) return false;
+  const now = at || performance.now();
+  G.snap = null;
+  G.hold = { t0: now, id, rps: kidsLeft(G.s) === 1 ? CFG.LAST_RPS : CFG.SLIDE_RPS, lastGroove: 0 };
+  log('input', 'hold.start', 'kid=' + G.s.kids[G.s.k]);
+  return true;
+}
+function release(at){
+  if (!G.hold) return;
+  const now = at || performance.now(), oh = overhang(now), rem = G.s.rows.length;
+  G.hold = null;
+  if (oh < CFG.MIN_BREAK){ G.snap = { from: oh, t0: now }; log('input', 'hold.cancel', 'overhang=' + oh.toFixed(2)); return; }
+  const n = kidsLeft(G.s) === 1 ? rem : Math.max(1, Math.min(rem, Math.round(oh)));
+  log('input', 'release', 'overhang=' + oh.toFixed(2) + ' n=' + n);
+  doBreak(n, oh, now);
+}
+function cancelHold(){ if (G.hold){ G.snap = { from: overhang(performance.now()), t0: performance.now() }; G.hold = null; } }
+
+// --- эффекты: частицы и всплывающие надписи по абсолютному времени (§4), случайность по сиду (§5) ---
+const FX = { parts: [], pops: [], shake: null, seed: 1 };
+function fxRnd(){ return mulberry32(FX.seed++); }
+// Частица: позиция считается от t0 по формуле (без накопления dt). kind: crumb | heart | confetti | spark | tear
+function spawn(p){ p.t0 = p.t0 || performance.now(); FX.parts.push(p); }
+function burstCrumbs(x, y, w, flavors, n){
+  const r = fxRnd();
+  for (let i = 0; i < n; i++){
+    const f = flavors[Math.floor(r() * flavors.length)];
+    spawn({ kind: 'crumb', x: x + (r() - 0.5) * w, y: y + (r() - 0.5) * 6, vx: (r() - 0.5) * 220, vy: -60 - r() * 200, g: 900,
+            life: 500 + r() * 400, size: 2 + r() * 4, rot: r() * 6, vr: (r() - 0.5) * 20, color: PAL['f-' + f] });
+  }
+}
+function burstHearts(x, y, n){ const r = fxRnd(); for (let i = 0; i < n; i++) spawn({ kind: 'heart', x: x + (r() - 0.5) * 50, y, vx: (r() - 0.5) * 60, vy: -90 - r() * 70, g: -20, life: 900 + r() * 300, size: 7 + r() * 5, rot: (r() - 0.5) * 0.6, vr: 0, color: r() < 0.5 ? '#ff5f8f' : '#ff8fb0' }); }
+// Хлопушки из нижних углов: конфетти взлетает и осыпается (победа).
+function burstConfetti(n){ const r = fxRnd(), cols = ['#ff7aa8', '#ffd36e', '#8fd9b6', '#9ec9ff', '#c7a8ff', '#ff9f6e'];
+  for (let i = 0; i < n; i++){ const side = i % 2 ? 1 : -1;
+    spawn({ kind: 'confetti', x: side > 0 ? W - 10 : 10, y: H - 60, vx: -side * (90 + r() * 260), vy: -(520 + r() * 420), g: 620, life: 2000 + r() * 900, size: 6 + r() * 5, rot: r() * 6, vr: (r() - 0.5) * 14, color: cols[Math.floor(r() * cols.length)] }); } }
+function burstSparks(x, y, n, color){ const r = fxRnd(); for (let i = 0; i < n; i++){ const a = r() * 6.28, sp = 60 + r() * 120; spawn({ kind: 'spark', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, g: 0, life: 300 + r() * 200, size: 3 + r() * 3, rot: 0, vr: 0, color: color || '#fff6c8' }); } }
+function pop(text, x, y, opt){ FX.pops.push(Object.assign({ text, x, y, t0: performance.now(), dur: 700, size: 18, color: '#fff', stroke: '#5b2d16', rise: 30 }, opt || {})); }
+function shake(amp, dur){ FX.shake = { t0: performance.now(), amp, dur }; }
+function shakeOffset(now){
+  const S = FX.shake; if (!S) return [0, 0];
+  const k = (now - S.t0) / S.dur; if (k >= 1){ FX.shake = null; return [0, 0]; }
+  const a = S.amp * (1 - k) * (1 - k); return [Math.sin(now * 0.11) * a, Math.cos(now * 0.137) * a * 0.7];
+}
+function drawParts(c, now){
+  FX.parts = FX.parts.filter(p => now - p.t0 < p.life);
+  for (const p of FX.parts){
+    const t = (now - p.t0) / 1000, k = (now - p.t0) / p.life;
+    const x = p.x + p.vx * t, y = p.y + p.vy * t + 0.5 * p.g * t * t, a = k > 0.7 ? (1 - k) / 0.3 : 1;
+    c.save(); c.globalAlpha = Math.max(0, a); c.translate(x, y); c.rotate(p.rot + p.vr * t);
+    if (p.kind === 'heart') drawHeart(c, 0, 0, p.size, p.color);
+    else if (p.kind === 'spark') drawSpark(c, 0, 0, p.size * (1 - k * 0.5), p.color);
+    else if (p.kind === 'confetti'){ c.fillStyle = p.color; c.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2); }
+    else { c.fillStyle = p.color; rr(c, -p.size / 2, -p.size / 2, p.size, p.size * 0.8, p.size * 0.25); c.fill(); }
+    c.restore();
+  }
+  FX.pops = FX.pops.filter(p => now - p.t0 < p.dur);
+  for (const p of FX.pops){
+    const k = (now - p.t0) / p.dur, s = k < 0.18 ? 0.6 + 0.6 * (k / 0.18) : 1.2 - 0.2 * Math.min(1, (k - 0.18) / 0.2);
+    c.save(); c.globalAlpha = k > 0.75 ? (1 - k) / 0.25 : 1; c.translate(p.x, p.y - p.rise * easeOut(k)); c.scale(s, s);
+    c.font = '900 ' + p.size + 'px Nunito, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.lineJoin = 'round'; c.lineWidth = p.size * 0.28; c.strokeStyle = p.stroke; c.strokeText(p.text, 0, 0); c.fillStyle = p.color; c.fillText(p.text, 0, 0);
+    c.restore();
+  }
+}
+
+// Отлом n рядов. Ядро применяется сразу; анимация рисует переход «до → после» по абсолютным дедлайнам.
+function doBreak(n, oh, now){
+  now = now || performance.now();
+  const ts = G.timeScale, R = resolveBreak(G.s, n), before = G.s;
+  const pieceRows = before.rows.slice(0, n), kidName = before.names[before.k];
+  const tGo = now + CFG.HITSTOP_MS / ts, tFall = tGo + CFG.FALL_MS / ts;
+  const own = R.cells.filter(c => c.to === 'kid'), foreign = R.cells.filter(c => c.to === 'saucer');
+  own.forEach((c, i) => c.t = tFall + (40 + i * CFG.EAT_STEP_MS) / ts);
+  foreign.forEach((c, i) => c.t = tFall + (20 + i * CFG.EAT_STEP_MS * 0.8) / ts);
+  const fromS = R.fromSaucer.map((slot, i) => ({ slot, f: before.saucer[slot], t: tFall + (60 + i * CFG.EAT_STEP_MS) / ts }));
+  const lastT = Math.max(tFall, ...own.map(c => c.t + CFG.BITE_MS / ts), ...foreign.map(c => c.t + CFG.HOP_MS / ts), ...fromS.map(c => c.t + CFG.HOP_MS / ts));
+  const tHappy = lastT + 60 / ts, tLeave = tHappy + CFG.HAPPY_MS / ts, tDone = tLeave + CFG.LEAVE_MS / ts;
+  G.anim = { t0: now, tGo, n, oh, R, pieceRows, own, foreign, fromS, saucerBefore: before.saucer.slice(), cap: before.cap, kidName,
+             tFall, tHappy, tLeave, tDone, w: before.w, rowsBefore: before.rows.length, flags: {}, bites: 0 };
+  G.s = applyMove(before, n);
+  G.snap = { from: Math.max(0, oh - n), t0: tGo };
+  G.lockUntil = R.result ? Infinity : tHappy;
+  // хруст: вспышка трещины, крошки обоих вкусов на линии, тряска, надпись
+  const crackY = LAY.edgeY + (ratchet(oh) - n) * LAY.ch, flv = [...new Set(pieceRows[n - 1] + (before.rows[n] || ''))].filter(f => f !== '.');
+  burstCrumbs(LAY.barCX, crackY, LAY.cw * before.w, flv, 16 + 3 * before.w);
+  burstSparks(LAY.barCX, crackY, 8);
+  shake(4 + Math.min(4, n), 260);
+  pop(n >= 3 ? 'ХРУСТЬ!' : 'хрусть!', Math.min(W - 58, LAY.x0 + LAY.cw * before.w + 36), crackY - 18, { size: n >= 3 ? 22 : 17, color: '#ffe6a8', dur: 650 });
+  G.anim.crackY = crackY;
+  Audio.crack(n); buzz(18);
+  own.forEach((c, i) => Audio.crunch(i, c.t + CFG.BITE_MS / ts - now));
+  foreign.forEach((c, i) => Audio.clink(i, c.t + CFG.HOP_MS / ts - now));
+  fromS.forEach((c, i) => Audio.crunch(i + 1, c.t + CFG.HOP_MS / ts - now));
+  log('fx.start', 'break', 'n=' + n + ' kid=' + R.kid + ' ate=' + R.ate + ' toSaucer=' + R.foreign.length + ' fromSaucer=' + R.fromSaucer.length);
+  log('event', 'piece', 'kid=' + kidName + '/' + R.kid + ' n=' + n + ' result=' + (R.result || '-'));
+  hud();
+  if (R.result === 'win'){ G.ending = tDone + CFG.WIN_DELAY_MS / ts; log('event', 'level.win', 'stars=' + stars(G.s) + ' crumbs=' + crumbs(G.s)); }
+  else if (R.result){ G.ending = tHappy + CFG.END_DELAY_MS / ts + 350; log('event', 'level.lose', 'why=' + R.result); }
+}
+function finishEnding(){
+  G.ending = 0;
+  if (isWin(G.s)){
+    const li = G.s.li, z = stars(G.s);
+    G.save.best[li] = Math.max(G.save.best[li] || 0, z);
+    G.save.level = Math.min(li + 1, LEVELS.length - 1); save();
+    log('event', 'reward', 'stars=' + z + ' try=' + G.tries[li]);
+    goto('win', z);
+  } else {
+    const R = G.anim && G.anim.R, why = G.s.over;
+    const nm = why === 'short' ? (G.s.names[G.s.k] || 'малыш') : (R ? G.s.names[R.k] : '');
+    goto('lose', nm);
+  }
+}
+function animTick(now){            // события по ходу отлома — звук, частицы, журнал (одна строка на событие)
+  const A = G.anim; if (!A) return;
+  const m = kidMouth();
+  if (!A.flags.land && now >= A.tFall){ A.flags.land = 1; Audio.thud(); }
+  while (A.bites < A.own.length && now >= A.own[A.bites].t + CFG.BITE_MS / G.timeScale){       // укус: «+1» и крошки у рта
+    A.bites++; pop('+1', m.x + 30 + (A.bites % 2) * 10, m.y - 30, { size: 15, color: '#fff', stroke: '#c2185b', dur: 520, rise: 26 });
+    burstCrumbs(m.x, m.y + 6, 20, [A.R.kid], 3);
+  }
+  if (!A.flags.happy && now >= A.tHappy){ A.flags.happy = 1;
+    if (A.R.result === 'overflow'){ Audio.spill(); buzz([40, 30, 40]); shake(6, 320); log('fx.start', 'spill'); }
+    else if (A.R.ate === 0){ Audio.sad(); pop('не моё…', m.x, m.y - LAY.kidH * 0.55, { size: 16, color: '#cfe8ff', stroke: '#2b4a6b', dur: 900 }); }
+    else { Audio.happy(); burstHearts(m.x, m.y - 20, 5);
+      if (A.R.result === 'win'){ burstConfetti(90); Audio.win(); buzz([20, 40, 20]); log('fx.start', 'confetti'); } pop('ням!', m.x, m.y - LAY.kidH * 0.6, { size: 20, color: '#fff', stroke: '#e0457b', dur: 800 }); }
+  }
+  if (!A.flags.done && now >= A.tDone){ A.flags.done = 1; log('fx.end', 'break');
+    if (!A.R.result) G.anim = null; }
+}
+
+// --- ввод: Pointer Events; удержание начинается сразу, без мёртвой зоны (§3, урок «тап и удержание») ---
+let downId = null;
+cv.addEventListener('pointerdown', (e) => {
+  Audio.init();
+  if (downId !== null) return;               // второй палец игнорируем
+  if (press(e.pointerId)){ downId = e.pointerId; try { cv.setPointerCapture(e.pointerId); } catch (err) {} }
+});
+function onUp(e){
+  if (e.pointerId !== downId) return;
+  downId = null;
+  if (e.type === 'pointercancel') { cancelHold(); log('input', 'pointercancel'); return; }
+  release();
+}
+cv.addEventListener('pointerup', onUp); cv.addEventListener('pointercancel', onUp);
+cv.addEventListener('contextmenu', (e) => e.preventDefault());
+document.addEventListener('keydown', (e) => {          // дубли на клавиатуру для отладки (§3)
+  if (e.repeat) return;
+  if (e.code === 'Space'){ Audio.init(); press('key'); e.preventDefault(); }
+  else if (e.key >= '1' && e.key <= '9' && canHold()) doBreak(Math.min(+e.key, G.s.rows.length), +e.key);
+  else if (e.key === 'r') startLevel(G.s ? G.s.li : 0);
+  else if (e.key === 'm') goto('menu');
+});
+document.addEventListener('keyup', (e) => { if (e.code === 'Space' && G.hold && G.hold.id === 'key') release(); });
+$('btn-reset').onclick = () => { Audio.init(); log('input', 'button', 'reset'); startLevel(G.s ? G.s.li : 0); };
+$('btn-menu').onclick = () => { Audio.init(); log('input', 'button', 'menu'); goto('menu'); };
+$('btn-mute').onclick = () => { Audio.init(); G.save.muted = !G.save.muted; save(); hud(); log('input', 'button', 'mute=' + G.save.muted); };
+
+// --- размер: resize + orientationchange + периодический пересчёт (§2) ---
+let PAL = {};
+function css(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function readPalette(){
+  for (const k of ['floor', 'wood', 'wood-dark', 'wood-line', 'plate', 'plate-rim', 'plate-warn', 'skin1', 'skin2', 'skin3', 'hair1', 'hair2', 'hair3',
+    'shirt1', 'shirt2', 'shirt3', 'shirt4', 'f-m', 'f-w', 'f-p', 'f-g', 'ink', 'muted', 'accent', 'danger', 'good']) PAL[k] = css('--' + k);
+}
+function fit(){
+  const r = $('game').getBoundingClientRect(); if (!r.width || !r.height) return;
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  scale = r.width / VW; W = VW; H = r.height / scale;
+  const cw = Math.round(r.width * DPR), chh = Math.round(r.height * DPR);
+  if (cv.width !== cw || cv.height !== chh){ cv.width = cw; cv.height = chh; }
+  readPalette(); layout();
+}
+let fitTimer = 0;
+const refit = () => { clearTimeout(fitTimer); fitTimer = setTimeout(fit, 140); };
+window.addEventListener('resize', refit); window.addEventListener('orientationchange', refit);
+setInterval(fit, 800);
+document.addEventListener('visibilitychange', () => { G.paused = document.hidden; if (G.paused) cancelHold(); log('event', G.paused ? 'pause' : 'resume'); });
+
+// --- арт: файлы в assets/, грузятся по имени (§11). Пока файла нет — рисуется запасной вариант кодом. ---
+const ASSET_FILES = {
+  backdrop: 'backdrop.webp', cloth: 'cloth.webp', plate: 'plate.webp', wrapper: 'wrapper.webp',
+  'dolka-m': 'dolka-m.webp', 'dolka-w': 'dolka-w.webp', 'dolka-p': 'dolka-p.webp', 'dolka-g': 'dolka-g.webp',
+  'bow-m': 'bow-m.webp', 'bow-w': 'bow-w.webp', 'bow-p': 'bow-p.webp', 'bow-g': 'bow-g.webp',
+};
+for (let i = 0; i < 4; i++) for (const m of ['wait', 'happy', 'sad']) ASSET_FILES['kid-' + i + '-' + m] = 'kid-' + i + '-' + m + '.webp';
+const IMG = {};
+let tablePattern = null;
+function loadAssets(){
+  for (const [name, file] of Object.entries(ASSET_FILES)){
+    const im = new Image();
+    im.onload = () => { IMG[name] = im; if (name === 'cloth') tablePattern = null; };
+    im.onerror = () => log('event', 'asset.missing', file);
+    im.src = 'assets/' + file;
+  }
+}
+const img = (n) => { const i = IMG[n]; return i && i.complete && i.naturalWidth ? i : null; };
+
+// --- рисование: именованные функции, что рисуют и от чего зависят (§11) ---
+function shade(hex, k){            // осветлить (k>0) / затемнить (k<0) цвет #rrggbb
+  const n = parseInt(hex.slice(1), 16); let r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const t = k < 0 ? 0 : 255, p = Math.abs(k);
+  r = Math.round(r + (t - r) * p); g = Math.round(g + (t - g) * p); b = Math.round(b + (t - b) * p);
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+function rr(c, x, y, w, h, r){ c.beginPath(); c.roundRect(x, y, w, h, r); }
+// Комната за столом: размытый праздничный фон (backdrop.webp, cover) — только под краем стола, где стоят дети.
+function drawRoom(c){
+  const im = img('backdrop'), y0 = LAY.edgeY;
+  if (im){ const h = H - y0 + 20, s = Math.max(W / im.width, h / im.height), w = im.width * s;
+    c.drawImage(im, (W - w) / 2, y0 - 10, w, im.height * s); }
+  else { const g = c.createLinearGradient(0, y0, 0, H); g.addColorStop(0, '#f3d9ec'); g.addColorStop(1, '#ffe2cf'); c.fillStyle = g; c.fillRect(0, y0, W, H - y0); }
+}
+// Стол: скатерть (cloth.webp плиткой) до края edgeY; край — фестоны с кружевными точками и мягкая тень на фоне.
+const SCALLOP = 26;              // ширина одного фестона скатерти, вирт. юниты
+function drawTable(c){
+  const y = LAY.edgeY, im = img('cloth');
+  c.save(); const sh = c.createLinearGradient(0, y, 0, y + 46); sh.addColorStop(0, 'rgba(120,50,70,.28)'); sh.addColorStop(1, 'rgba(120,50,70,0)');
+  c.fillStyle = sh; c.fillRect(0, y, W, 46); c.restore();
+  let fill = '#fbf3ea';
+  if (im){ if (!tablePattern) tablePattern = c.createPattern(im, 'repeat'); const s = 260 / im.width; tablePattern.setTransform(new DOMMatrix([s, 0, 0, s, 0, 0])); fill = tablePattern; }
+  c.fillStyle = fill; c.fillRect(0, 0, W, y + 2);
+  c.fillStyle = 'rgba(250,200,205,.28)'; c.fillRect(0, 0, W, y + 2);   // тёплый розовый тон: белая шоколадка не тонет
+  c.beginPath(); c.moveTo(0, y);
+  for (let x = 0; x < W + SCALLOP; x += SCALLOP) c.arc(x + SCALLOP / 2, y, SCALLOP / 2, Math.PI, 0, true);
+  c.lineTo(W, y - 2); c.lineTo(0, y - 2); c.closePath(); c.fillStyle = fill; c.fill(); c.fillStyle = 'rgba(250,200,205,.28)'; c.fill();
+  c.save(); c.clip(); const eg = c.createLinearGradient(0, y - 4, 0, y + SCALLOP / 2); eg.addColorStop(0, 'rgba(230,170,170,0)'); eg.addColorStop(1, 'rgba(220,150,160,.45)');
+  c.fillStyle = eg; c.fillRect(0, y - 4, W, SCALLOP); c.restore();
+  c.fillStyle = 'rgba(240,150,170,.75)';
+  for (let x = 0; x < W + SCALLOP; x += SCALLOP){ c.beginPath(); c.arc(x + SCALLOP / 2, y + SCALLOP * 0.28, 1.8, 0, 6.28); c.fill(); }
+  c.strokeStyle = 'rgba(240,150,170,.55)'; c.lineWidth = 1.5; c.setLineDash([2, 4]); c.beginPath(); c.moveTo(0, y - 5); c.lineTo(W, y - 5); c.stroke(); c.setLineDash([]);
+}
+// Долька: спрайт dolka-<вкус> (или запасной рисунок кодом). alpha — для призраков.
+function drawDolka(c, x, y, w, h, f, alpha){
+  const im = img('dolka-' + f);
+  if (im){
+    if (alpha !== undefined){ c.save(); c.globalAlpha *= alpha; }
+    c.drawImage(im, x - w * 0.02, y - h * 0.02, w * 1.04, h * 1.04);
+    if (alpha !== undefined) c.restore();
+    return;
+  }
+  const base = PAL['f-' + f] || '#999';
+  c.save(); if (alpha !== undefined) c.globalAlpha = alpha;
+  rr(c, x, y, w, h, Math.min(w, h) * 0.12); c.fillStyle = shade(base, -0.18); c.fill();
+  const i = Math.min(w, h) * 0.13;
+  rr(c, x + i, y + i, w - 2 * i, h - 2 * i, Math.min(w, h) * 0.1); c.fillStyle = base; c.fill();
+  c.restore();
+}
+// Обёртка-фольга над верхним рядом плитки (wrapper.webp или красная полоса кодом) + надпись ОТЛОМИ.
+// x, w — по плитке; bottom — где рваный край фольги (немного заходит на верхний ряд).
+function drawWrapper(c, x, w, bottom){
+  const im = img('wrapper'), ww = w * 1.12, wh = Math.min(im ? ww * im.height / im.width : 30, LAY.ch * 1.05), y = bottom - wh;
+  if (im) c.drawImage(im, x - (ww - w) / 2, y, ww, wh);
+  else { rr(c, x - 3, y, w + 6, wh, 5); c.fillStyle = '#e8473f'; c.fill(); c.fillStyle = '#ffd36e'; c.fillRect(x - 3, y + wh - 5, w + 6, 3); }
+  c.save(); c.fillStyle = '#fff'; c.font = '900 ' + Math.round(Math.min(wh * 0.42, w * 0.11)) + 'px Nunito, system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.shadowColor = 'rgba(80,0,0,.55)'; c.shadowOffsetY = 1.5; c.fillText('ОТЛОМИ!', x + w / 2, y + wh * 0.4); c.restore();
+}
+// Плитка: ряды снизу вверх; row 0 — нижний, его низ на краю стола + свес oh рядов (уже с храповиком).
+// Свисающая часть темнее (она в воздухе), её тень на ковре уходит дальше; при удержании свес дрожит.
+function drawBar(c, rows, oh, now, tremble){
+  const { ch, cw, x0, edgeY } = LAY, n = rows.length, w = n ? rows[0].length : 0;
+  if (!n) return;
+  const bottom = edgeY + oh * ch, top = bottom - n * ch, bw = cw * w;
+  const hang = Math.max(0, bottom - edgeY);
+  c.save(); c.fillStyle = 'rgba(110,40,40,.22)'; c.shadowColor = 'rgba(110,40,40,.35)'; c.shadowBlur = 14; c.shadowOffsetY = 4;
+  rr(c, x0 + 4, top + 6, bw, Math.min(n * ch, edgeY - top + 2), 8); c.fill();                     // тень на столе
+  if (hang > 0){ c.shadowColor = 'rgba(70,30,10,.35)'; c.shadowBlur = 18; c.fillStyle = 'rgba(70,30,10,.12)'; rr(c, x0 + 8 + hang * 0.05, edgeY + 26, bw - 4, hang - 6, 14); c.fill(); }   // мягкая тень свеса на ковре
+  c.restore();
+  const tr = tremble ? Math.sin(now / 21) * tremble : 0;
+  for (let r = 0; r < n; r++){
+    const y = bottom - (r + 1) * ch, inAir = y + ch * 0.5 > edgeY;
+    for (let col = 0; col < w; col++){
+      const f = rows[r][col]; if (f === '.') continue;
+      drawDolka(c, x0 + col * cw + (inAir ? tr * (1 + (y - edgeY) / ch * 0.4) : 0), y, cw, ch, f);
+    }
+  }
+  drawWrapper(c, x0, bw, top + ch * 0.3);
+  if (hang > 0){                                                                       // воздух: свес чуть темнее
+    const g = c.createLinearGradient(0, edgeY, 0, bottom); g.addColorStop(0, 'rgba(40,15,0,.0)'); g.addColorStop(1, 'rgba(40,15,0,.16)');
+    c.fillStyle = g; c.fillRect(x0 - 2, edgeY, bw + 4, hang);
+  }
+}
+// Трещина-превью: где сломается при отпускании (ближайшая бороздка — тот же расчёт, что в ядре).
+function drawCrack(c, y, w, t, flash){
+  const { cw, x0 } = LAY, len = cw * w, seg = 9;
+  c.save(); c.strokeStyle = flash ? '#ffffff' : '#fff4c8'; c.lineWidth = flash ? 5 : 3; c.lineJoin = 'round';
+  c.shadowColor = 'rgba(255,230,150,1)'; c.shadowBlur = flash ? 22 : 9 + 5 * Math.sin(t / 80);
+  c.beginPath(); c.moveTo(x0 - 6, y);
+  for (let i = 1; i <= seg; i++) c.lineTo(x0 - 6 + (len + 12) * i / seg, y + (i % 2 ? -3.5 : 3.5));
+  c.stroke(); c.restore();
+}
+// Ребёнок: спрайт kid-<лицо>-<эмоция> (wait/happy/sad) + бантик своего вкуса; squash — укус, lean — тянется к куску.
+// mood: wait · chew · happy · sad · worried · idle. Без спрайтов — запасной кружок кодом.
+function drawKid(c, x, base, h, f, mood, idx, now, opt){
+  opt = opt || {};
+  const face = idx % 4, emo = mood === 'happy' || mood === 'chew' ? 'happy' : mood === 'sad' || mood === 'worried' ? 'sad' : 'wait';
+  const im = img('kid-' + face + '-' + emo) || img('kid-' + face + '-wait');
+  const w = h * (im ? im.width / im.height : KID_ART.aspect);
+  let sy = 1, sx = 1, dy = 0;
+  if (mood === 'happy'){ dy = -Math.abs(Math.sin(now / 110)) * h * 0.07; }
+  if (opt.bite !== undefined && opt.bite < 1){ const b = Math.sin(opt.bite * Math.PI); sy = 1 - 0.07 * b; sx = 1 + 0.05 * b; }
+  if (mood === 'sad'){ dy = Math.sin(now / 160) * 1.5; }
+  if (opt.lean) dy -= opt.lean * h * 0.05;
+  if (mood === 'idle') dy = Math.sin(now / 420 + idx) * 1.2;
+  c.save(); c.fillStyle = 'rgba(80,35,10,.22)'; c.beginPath(); c.ellipse(x, base - 2, w * 0.42, h * 0.05, 0, 0, 6.28); c.fill(); c.restore();
+  c.save(); c.translate(x, base + dy); c.scale(sx, sy);
+  if (im) c.drawImage(im, -w / 2, -h, w, h);
+  else { c.fillStyle = PAL['skin' + (1 + idx % 3)]; c.beginPath(); c.arc(0, -h * 0.55, h * 0.36, 0, 6.28); c.fill(); }
+  const bw = w * KID_ART.bowW, bim = img('bow-' + f);
+  const bx = -w / 2 + w * KID_ART.bowX, by = -h + h * KID_ART.bowY;
+  if (bim) c.drawImage(bim, bx - bw / 2, by - bw * 0.45, bw, bw * bim.height / bim.width);
+  else { c.fillStyle = PAL['f-' + f]; c.beginPath(); c.arc(bx, by, bw * 0.3, 0, 6.28); c.fill(); }
+  c.restore();
+}
+// Блюдце (вид сверху): plate.webp или круг кодом; места — пунктирные гнёзда; warn — переполнение; wob — подпрыгивание.
+function drawPlate(c, cap, warn, wob){
+  const x = LAY.plateX, y = LAY.plateY, R = LAY.plateR, im = img('plate'), k = 1 + (wob || 0);
+  c.save(); c.translate(x, y); c.scale(k, k);
+  c.fillStyle = 'rgba(120,50,60,.18)'; c.beginPath(); c.ellipse(3, 6, R * 1.02, R * 1.0, 0, 0, 6.28); c.fill();
+  if (im) c.drawImage(im, -R * 1.08, -R * 1.08, R * 2.16, R * 2.16);
+  else { c.fillStyle = '#fff'; c.beginPath(); c.arc(0, 0, R, 0, 6.28); c.fill(); c.strokeStyle = '#f4b6c8'; c.lineWidth = 5; c.stroke(); }
+  if (warn){ c.strokeStyle = PAL.danger; c.lineWidth = 4; c.globalAlpha = 0.55 + 0.45 * Math.sin(performance.now() / 70); c.beginPath(); c.arc(0, 0, R * 1.04, 0, 6.28); c.stroke(); }
+  c.restore();
+  c.save(); c.fillStyle = 'rgba(214,170,170,.22)';                  // гнёзда мест: мягкие лунки, не пунктир
+  for (let i = 0; i < cap; i++){ const p = saucerSlot(i, cap); rr(c, p.x - CRUMB.w / 2 + 2, p.y - CRUMB.h / 2 + 2, CRUMB.w - 4, CRUMB.h - 4, 6); c.fill(); }
+  c.restore();
+}
+// Облачко-заказ над ребёнком: какой вкус он ждёт (долька в белом облачке с хвостиком).
+function drawWish(c, x, y, f, s){
+  s = s || 1;
+  c.save(); c.translate(x, y); c.scale(s, s);
+  c.shadowColor = 'rgba(120,50,60,.22)'; c.shadowBlur = 6; c.shadowOffsetY = 2;
+  c.fillStyle = '#fff'; c.beginPath(); c.arc(0, 0, 17, 0, 6.28); c.fill();
+  c.beginPath(); c.moveTo(-5, 14); c.lineTo(5, 14); c.lineTo(0, 22); c.closePath(); c.fill();
+  c.shadowColor = 'transparent'; drawDolka(c, -12, -10, 24, 20, f);
+  c.restore();
+}
+function drawCrumb(c, x, y, f, sc, alpha){ sc = sc || 1; drawDolka(c, x - CRUMB.w * sc / 2, y - CRUMB.h * sc / 2, CRUMB.w * sc, CRUMB.h * sc, f, alpha); }
+// Пузырь-подсказка: сколько своего съест / предупреждение; хвостик вниз.
+function drawBubble(c, x, y, text, bad, icon){
+  c.save(); c.font = '900 15px Nunito, system-ui, sans-serif'; const tw = c.measureText(text).width, iw = icon ? 22 : 0, w = tw + 22 + iw;
+  c.shadowColor = 'rgba(60,20,0,.25)'; c.shadowOffsetY = 2; c.shadowBlur = 4;
+  rr(c, x - w / 2, y - 15, w, 28, 14); c.fillStyle = bad ? PAL.danger : '#fff'; c.fill();
+  c.beginPath(); c.moveTo(x - 6, y + 12); c.lineTo(x + 6, y + 12); c.lineTo(x, y + 19); c.closePath(); c.fill();
+  c.shadowColor = 'transparent';
+  if (icon) drawDolka(c, x - w / 2 + 9, y - 8, 18, 15, icon);
+  c.fillStyle = bad ? '#fff' : PAL.ink; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, x + iw / 2, y);
+  c.restore();
+}
+// Подсказка «держи» на 1-м уровне до первого отлома: палец-кружок с расходящимся кольцом.
+function drawHoldHint(c, now){
+  const x = LAY.barCX, y = LAY.edgeY - LAY.ch * 0.9, k = (now % 1200) / 1200;
+  c.save(); c.strokeStyle = '#fff'; c.lineWidth = 4; c.globalAlpha = 1 - k;
+  c.beginPath(); c.arc(x, y, 16 + 26 * k, 0, 6.28); c.stroke();
+  c.globalAlpha = 0.95; c.fillStyle = 'rgba(255,255,255,.9)'; c.beginPath(); c.arc(x, y, 13, 0, 6.28); c.fill();
+  c.fillStyle = PAL.accent; c.beginPath(); c.arc(x, y, 8, 0, 6.28); c.fill();
+  c.font = '900 16px Nunito, system-ui, sans-serif'; c.textAlign = 'center'; c.lineWidth = 4; c.strokeStyle = '#5b2d16'; c.globalAlpha = 1;
+  c.strokeText('держи', x, y - 32); c.fillStyle = '#fff'; c.fillText('держи', x, y - 32);
+  c.restore();
+}
+function drawHeart(c, x, y, s, color){ c.fillStyle = color; c.beginPath(); c.moveTo(x, y + s * 0.35);
+  c.bezierCurveTo(x - s * 1.1, y - s * 0.4, x - s * 0.4, y - s * 1.1, x, y - s * 0.45); c.bezierCurveTo(x + s * 0.4, y - s * 1.1, x + s * 1.1, y - s * 0.4, x, y + s * 0.35); c.fill(); }
+function drawSpark(c, x, y, s, color){ c.fillStyle = color; c.beginPath(); for (let i = 0; i < 8; i++){ const a = i * Math.PI / 4, r = i % 2 ? s * 0.35 : s; c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } c.closePath(); c.fill(); }
+const ease = (t) => t < 0 ? 0 : t > 1 ? 1 : t;
+const easeOut = (t) => 1 - (1 - ease(t)) * (1 - ease(t));
+const easeIn = (t) => ease(t) * ease(t);
+const easeOutBack = (t) => { t = ease(t); const s = 1.7; return 1 + (s + 1) * Math.pow(t - 1, 3) + s * Math.pow(t - 1, 2); };
+
+// --- рендер кадра: всё в canvas (§9) ---
+function render(){
+  const now = performance.now();
+  ctx.setTransform(DPR * scale, 0, 0, DPR * scale, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  if (!PAL.floor) readPalette();
+  const [sx, sy] = shakeOffset(now);
+  ctx.translate(sx, sy);
+  if (!G.s){ drawRoom(ctx); drawTable(ctx); drawParts(ctx, now); return; }
+  const s = G.s, A = G.anim, ts = G.timeScale;
+  if (G.hold && s.rows.length && overhang(now) >= s.rows.length - 1e-6 && !s.over) release(now);   // доехала до конца — ломается вся
+  const ohTrue = overhang(now), oh = G.hold ? ratchet(ohTrue) : ohTrue;
+  if (G.snap && now - G.snap.t0 > CFG.SNAP_MS) G.snap = null;
+  if (G.hold){ const gi = Math.floor(ohTrue + 0.5); if (gi > G.hold.lastGroove){ G.hold.lastGroove = gi; Audio.groove(gi); buzz(5); } }   // щелчок на бороздке
+
+  drawRoom(ctx); drawTable(ctx);
+
+  // превью при удержании
+  let prev = null, nPrev = 0;
+  if (G.hold && ohTrue >= 0.12 && !s.over){
+    const rem = s.rows.length; nPrev = kidsLeft(s) === 1 ? rem : Math.max(1, Math.min(rem, Math.round(ohTrue)));
+    prev = resolveBreak(s, nPrev);
+  }
+  const tremble = G.hold ? Math.min(1.4, Math.max(0, ohTrue - 1.2) * 0.6) : 0;
+  // остаток плитки: во время хит-стопа кусок ещё на месте — рисуем плитку целиком
+  if (A && now < A.tGo){
+    const rows = A.pieceRows.concat(s.rows);
+    drawBar(ctx, rows, ratchet(A.oh), now, 0);
+    drawCrack(ctx, A.crackY, A.w, now, true);
+  } else {
+    drawBar(ctx, s.rows, oh, now, tremble);
+    if (prev && ohTrue >= CFG.MIN_BREAK && nPrev < s.rows.length) drawCrack(ctx, LAY.edgeY + (oh - nPrev) * LAY.ch, s.w, now, false);
+  }
+  if (s.li === 0 && s.k === 0 && !G.hold && !A) drawHoldHint(ctx, now);
+
+  // блюдце: во время анимации — переход «до → после»
+  const cap = s.cap;
+  let wob = 0;
+  if (A) for (const c of A.foreign){ const k = (now - c.t - CFG.HOP_MS / ts) / 220; if (k > 0 && k < 1) wob += Math.sin(k * Math.PI) * 0.06; }
+  drawPlate(ctx, cap, prev ? prev.result === 'overflow' : (A && A.R.result === 'overflow' && now >= A.tHappy), wob);
+  if (A && now < A.tDone){
+    A.R.stay.forEach((slot, j) => { const p = saucerSlot(j, cap); drawCrumb(ctx, p.x, p.y, A.saucerBefore[slot]); });
+    const m = kidMouth();
+    for (const fs of A.fromS){                                       // дольки с блюдца летят в рот
+      const k = (now - fs.t) / (CFG.HOP_MS / ts); const a = saucerSlot(fs.slot, cap);
+      if (k < 0){ drawCrumb(ctx, a.x, a.y, fs.f); continue; } if (k >= 1) continue;
+      drawCrumb(ctx, a.x + (m.x - a.x) * easeIn(k), a.y + (m.y - a.y) * k - Math.sin(k * Math.PI) * 60, fs.f, 1 - 0.5 * k);
+    }
+  } else {
+    s.saucer.forEach((f, i) => { if (i < cap){ const p = saucerSlot(i, cap); drawCrumb(ctx, p.x, p.y, f); } });
+  }
+  if (prev){
+    prev.foreign.forEach((f, j) => { const slot = prev.stay.length + j;
+      if (slot < cap){ const p = saucerSlot(slot, cap); drawCrumb(ctx, p.x, p.y, f, 1, 0.42 + 0.12 * Math.sin(now / 120)); }
+      else { const p = floorSlot(slot - cap); drawCrumb(ctx, p.x, p.y, f, 0.9, 0.55); } });
+  }
+
+  // очередь детей
+  const k0 = A && (now < A.tDone || A.R.result) ? A.R.k : s.k;
+  const shift = A && !A.R.result && now >= A.tLeave && now < A.tDone ? easeOut((now - A.tLeave) / (CFG.LEAVE_MS / ts)) : 0;
+  const last = Math.min(s.kids.length, k0 + 1 + CFG.QUEUE_SHOWN);
+  let biteK;
+  if (A && now >= A.tFall && now < A.tHappy){ for (const c of A.own){ const k = (now - c.t) / (CFG.BITE_MS / ts); if (k >= 0.6 && k < 1.8) biteK = (k - 0.6) / 1.2; } }
+  { const g = ctx.createRadialGradient(LAY.kidX, H - LAY.kidH * 0.45, 10, LAY.kidX, H - LAY.kidH * 0.45, LAY.kidH * 0.75);   // мягкий свет на первом
+    g.addColorStop(0, 'rgba(255,255,240,.55)'); g.addColorStop(1, 'rgba(255,255,240,0)'); ctx.fillStyle = g; ctx.fillRect(LAY.kidX - LAY.kidH, H - LAY.kidH * 1.3, LAY.kidH * 2, LAY.kidH * 1.3); }
+  for (let i = last - 1; i >= k0; i--){
+    const qi = i - k0, isFront = qi === 0;
+    let pos;
+    if (isFront){ const p0 = queueSlot(0); pos = { x: p0.x - shift * 300, base: p0.base, h: p0.h }; }
+    else { const a = queueSlot(qi), b = queueSlot(qi - 1); pos = { x: a.x + (b.x - a.x) * shift, base: a.base + (b.base - a.base) * shift, h: a.h + (b.h - a.h) * shift }; }
+    let mood = isFront ? 'wait' : 'idle';
+    if (isFront && A && now >= A.t0){ mood = now < A.tFall ? 'wait' : now < A.tHappy ? 'chew' : (A.R.ate > 0 && A.R.result !== 'overflow' ? 'happy' : 'sad'); }
+    if (isFront && prev && !A) mood = prev.ate === 0 ? 'worried' : 'wait';
+    drawKid(ctx, pos.x, pos.base, pos.h, s.kids[i], mood, kidFace(i, s.li), now, { bite: isFront && mood === 'chew' ? biteK : undefined, lean: isFront && G.hold ? Math.min(1, ohTrue / 2) : 0 });
+    if (!isFront) drawWish(ctx, pos.x + pos.h * 0.05, pos.base - pos.h - 12 + Math.sin(now / 500 + i) * 1.5, s.kids[i], 0.82);
+    else if (!prev && !s.over && !(A && now < A.tDone)) drawWish(ctx, pos.x + pos.h * 0.36, pos.base - pos.h + 6 + Math.sin(now / 400) * 2, s.kids[i], 1);
+  }
+  if (s.kids.length > last){
+    const p = queueSlot(CFG.QUEUE_SHOWN); drawBubble(ctx, Math.min(p.x + 22, W - 22), p.base - p.h * 0.45, '+' + (s.kids.length - last), false);
+  }
+  // имя первого в очереди — табличка на груди
+  if ((!A || (now >= A.tDone && !A.R.result)) && s.k < s.kids.length){
+    ctx.save(); ctx.font = '800 13px Nunito, system-ui, sans-serif'; const nm = s.names[s.k], tw = ctx.measureText(nm).width + 16;
+    rr(ctx, LAY.kidX - tw / 2, H - 26, tw, 20, 10); ctx.fillStyle = 'rgba(255,255,255,.92)'; ctx.fill();
+    ctx.fillStyle = PAL.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(nm, LAY.kidX, H - 16); ctx.restore();
+  }
+
+  // кусок: стоп-кадр → падает в руки → свои дольки по одной в рот, чужие прыгают на блюдце
+  if (A && now >= A.tGo && now < A.tDone){
+    const pw = A.w * LAY.cw, ph = A.n * LAY.ch;
+    const sc = Math.min(1, 118 / pw, 100 / ph);
+    const fromX = LAY.x0, fromY = A.crackY;
+    const toX = LAY.kidX - pw * sc / 2, toY = LAY.kidBase - LAY.kidH * (1 - KID_ART.handsY) - ph * sc;
+    const k = ease((now - A.tGo) / (CFG.FALL_MS / ts)), ke = easeIn(k);
+    const px = fromX + (toX - fromX) * ke, py = fromY + (toY - fromY) * ke - Math.sin(k * Math.PI) * 18;
+    const land = now >= A.tFall ? Math.max(0, 1 - (now - A.tFall) / 160) : 0;
+    const ps = (1 + (sc - 1) * ke), rot = 0.18 * Math.sin(k * Math.PI) * (A.n % 2 ? 1 : -1);
+    const cellPos = (c) => ({ x: px + (c.c + 0.5) * LAY.cw * ps, y: py + (A.n - 1 - c.r + 0.5) * LAY.ch * ps });
+    const m = kidMouth();
+    ctx.save(); ctx.translate(px + pw * ps / 2, py + ph * ps); ctx.rotate(rot); ctx.scale(1 + 0.08 * land, 1 - 0.1 * land); ctx.translate(-(px + pw * ps / 2), -(py + ph * ps));
+    for (const c of A.R.cells){
+      if (now >= c.t) continue;
+      const p = cellPos(c), w = LAY.cw * ps, h = LAY.ch * ps;
+      drawDolka(ctx, p.x - w / 2, p.y - h / 2, w, h, c.f);
+    }
+    ctx.restore();
+    for (const c of A.own){                                          // укус: долька летит в рот и уменьшается
+      const k2 = (now - c.t) / (CFG.BITE_MS / ts); if (k2 < 0 || k2 >= 1) continue;
+      const a = cellPos(c), w = LAY.cw * ps * (1 - 0.7 * k2), h = LAY.ch * ps * (1 - 0.7 * k2);
+      const x = a.x + (m.x - a.x) * easeIn(k2), y = a.y + (m.y - a.y) * easeIn(k2) - Math.sin(k2 * Math.PI) * 26;
+      drawDolka(ctx, x - w / 2, y - h / 2, w, h, c.f);
+    }
+    for (const c of A.foreign){                                      // перелёт на блюдце
+      const k2 = (now - c.t) / (CFG.HOP_MS / ts); if (k2 < 0) continue;
+      const a = cellPos(c);
+      const b = c.slot < A.cap ? saucerSlot(c.slot, A.cap) : floorSlot(c.slot - A.cap);
+      if (k2 >= 1){ const sq = Math.max(0, 1 - (k2 - 1) * 4); drawCrumb(ctx, b.x, b.y + sq * 1.5, c.f, 1 + 0.12 * sq); continue; }
+      const scl = ps * LAY.cw / CRUMB.w; drawCrumb(ctx, a.x + (b.x - a.x) * k2, a.y + (b.y - a.y) * k2 - Math.sin(k2 * Math.PI) * 70, c.f, scl + (1 - scl) * k2);
+    }
+  }
+  if (A && A.R.result && now >= A.tDone){                            // конец уровня: что упало на пол — лежит
+    A.R.saucerAfter.forEach((f, i) => { if (i >= A.cap){ const p = floorSlot(i - A.cap); drawCrumb(ctx, p.x, p.y, f); } });
+  }
+
+  // пузыри превью: сколько своего съест, предупреждения
+  if (prev && !A){
+    const by = LAY.kidBase - LAY.kidH - 4;
+    if (prev.result === 'overflow') drawBubble(ctx, Math.min(LAY.plateX, W - 64), LAY.plateY - LAY.plateR - 16, 'переполнится!', true);
+    if (prev.result === 'short'){ const q = queueSlot(1); drawBubble(ctx, Math.min(q.x, W - 46), q.base - q.h - 12, 'а мне?', true); }
+    drawBubble(ctx, LAY.kidX + LAY.kidH * 0.3, Math.max(by, LAY.edgeY + oh * LAY.ch + 22), prev.ate === 0 ? 'не мой вкус!' : '×' + prev.ate, prev.ate === 0, prev.ate ? prev.kid : null);
+  }
+  drawParts(ctx, now);
+  animTick(now);
+  if (G.ending && now >= G.ending) finishEnding();
+  if (toastUntil && now > toastUntil){ $('toast').classList.add('hide'); toastUntil = 0; }
+}
+
+// --- цикл: rAF + watchdog setInterval; безопасно, потому что время абсолютное (§4) ---
+let lastFrame = 0;
+function frame(){ lastFrame = performance.now(); if (!G.paused) render(); requestAnimationFrame(frame); }
+setInterval(() => { if (performance.now() - lastFrame > 120 && !G.paused) render(); }, 40);
+
+// --- дебаг-хук (§6): состояние, любой экран, прогон времени, автоигра ---
+window.OTLOMI = {
+  G, CFG, LEVELS,
+  state(){
+    if (!G.s) return { screen: G.screen };
+    return { screen: G.screen, level: G.s.li + 1, rows: G.s.rows.slice().reverse().join(' '), kid: G.s.kids[G.s.k] || null, k: G.s.k, kids: G.s.kids.join(''),
+      saucer: G.s.saucer.join(''), moves: G.s.moves, over: G.s.over, stars: stars(G.s), holding: !!G.hold, overhang: +overhang(performance.now()).toFixed(2), anim: !!G.anim };
+  },
+  play(n){ startLevel(Math.max(1, Math.min(LEVELS.length, n || 1)) - 1); return this.state(); },
+  brk(n){ if (!canHold()) return 'занято'; doBreak(Math.max(1, Math.min(G.s.rows.length, n)), n); return this.state(); },   // мгновенный отлом n рядов
+  press(){ Audio.init(); return press('hook'); }, release(){ release(); return this.state(); },
+  goto(screen){ goto(screen, screen === 'win' ? 3 : undefined); return G.screen; },
+  solve(){ return G.s ? solve(G.s) : null; },
+  auto(delayMs){                                  // доиграть лучшим путём солвера
+    const r = this.solve(); const path = (r && r.path) || []; let i = 0;
+    const step = () => { if (i >= path.length || G.screen !== 'game') return; if (canHold()){ doBreak(path[i], path[i]); i++; } setTimeout(step, delayMs || 400); };
+    step(); return path;
+  },
+  drive(sec){                                     // ручной прогон игрового времени: rAF заморожен в скрытой вкладке
+    const end = performance.now() + sec * 1000; let n = 0;
+    while (performance.now() < end && n < 200000){ render(); n++; }
+    render(); return this.state();
+  },
+  speed(x){ G.timeScale = x || 1; return G.timeScale; },
+  reset(){ try { localStorage.removeItem(SAVE_KEY); } catch (e) {} location.reload(); },
+};
+
+// --- старт ---
+loadAssets(); fit(); hud();
+const startHash = location.hash.slice(1);
+if (startHash === 'game') startLevel(G.save.level); else goto(startHash || 'menu', startHash === 'win' ? 3 : undefined);
+requestAnimationFrame(frame);
+log('event', 'boot', 'levels=' + LEVELS.length);
+</script>
+</body>
+</html>
